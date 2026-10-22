@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disaster Response Coordination Portal</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#1e293b}
+header{background:#172554;color:white;padding:22px}
+header h1{margin:0 0 8px}
+header p{margin:0;color:#cbd5e1}
+main{max-width:1200px;margin:auto;padding:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px}
+.card,section{background:white;padding:18px;border-radius:10px;margin-bottom:18px;box-shadow:0 2px 8px #0001}
+.card h3{margin:0;color:#64748b;font-size:14px}
+.card strong{display:block;font-size:28px;margin-top:10px}
+.alert{background:#fee2e2;color:#991b1b;padding:12px;margin:10px 0;border-radius:6px}
+.ok{background:#dcfce7;color:#166534;padding:12px;margin:10px 0;border-radius:6px}
+table{width:100%;border-collapse:collapse;background:white}
+th,td{padding:11px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#e2e8f0}
+.table-wrap{overflow-x:auto}
+.badge{font-weight:bold}
+.Critical{color:#dc2626}.High{color:#ea580c}
+.Medium{color:#ca8a04}.Low{color:#15803d}
+select,button{padding:10px;border:1px solid #cbd5e1;border-radius:5px}
+button{background:#1d4ed8;color:white;cursor:pointer}
+button:hover{background:#1e40af}
+.small{color:#64748b;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>Disaster Response & Emergency Resource Coordination</h1>
+<p>District Disaster Management Authority | Simulated Live Dashboard</p>
+</header>
+
+<main>
+<section>
+<h2>Incident Overview</h2>
+<div class="cards">
+<div class="card"><h3>Total Incidents</h3><strong id="total">5</strong></div>
+<div class="card"><h3>Open / In Progress</h3><strong id="open">4</strong></div>
+<div class="card"><h3>Resolved</h3><strong id="resolved">1</strong></div>
+<div class="card"><h3>Available Rescue Teams</h3><strong id="teams">3</strong></div>
+</div>
+<div id="alerts"></div>
+</section>
+
+<section>
+<h2>Incident Management</h2>
+<label for="severity">Filter by severity: </label>
+<select id="severity" onchange="renderIncidents()">
+<option value="All">All Severities</option>
+<option>Critical</option><option>High</option>
+<option>Medium</option><option>Low</option>
+</select>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th>ID</th><th>Location</th><th>Category</th><th>Severity</th>
+<th>Reported Time</th><th>Response Team</th><th>Status</th>
+</tr></thead>
+<tbody id="incidents"></tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>Evacuation Centres</h2>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th>Centre</th><th>Location</th><th>Occupancy</th>
+<th>Capacity</th><th>Occupancy %</th><th>Relief Supplies</th>
+</tr></thead>
+<tbody id="centres"></tbody>
+</table>
+</div>
+<div id="centreAlerts"></div>
+</section>
+
+<section>
+<h2>Emergency Resource Allocation</h2>
+<p id="priority"></p>
+<p id="allocation"></p>
+<h3>Relief Supplies Requiring Replenishment</h3>
+<ul id="supplies"></ul>
+<h3>Rescue Team Availability</h3>
+<ul id="teamList"></ul>
+</section>
+
+<section>
+<h2>Simulated Evacuation & Relief Distribution</h2>
+<p class="small">Simulation only. These actions do not contact actual emergency services.</p>
+<button onclick="simulateEvacuation()">Simulate Evacuation Update</button>
+<button onclick="simulateRelief()">Simulate Relief Distribution</button>
+<p id="simulation">No simulation executed yet.</p>
+</section>
+</main>
+
+<script>
+const incidents = [
+{id:"INC001",location:"North District",category:"Flood",severity:"Critical",time:"08:10",team:"Rescue Team Alpha",status:"Open"},
+{id:"INC002",location:"East District",category:"Building Rescue",severity:"High",time:"08:25",team:"Rescue Team Bravo",status:"In Progress"},
+{id:"INC003",location:"West District",category:"Waterlogging",severity:"Medium",time:"08:40",team:"Rescue Team Charlie",status:"Open"},
+{id:"INC004",location:"South District",category:"Medical Emergency",severity:"High",time:"09:00",team:"Medical Team Delta",status:"Resolved"},
+{id:"INC005",location:"Central District",category:"Flood",severity:"Critical",time:"09:15",team:"Rescue Team Echo",status:"Open"}
+];
+
+const centres = [
+{name:"Centre A",location:"North District",occupancy:950,capacity:1000,supplies:"Food low"},
+{name:"Centre B",location:"East District",occupancy:600,capacity:800,supplies:"Water available"},
+{name:"Centre C",location:"South District",occupancy:450,capacity:500,supplies:"Medical kits low"}
+];
+
+const teams = [
+{name:"Rescue Team Alpha",status:"Deployed"},
+{name:"Rescue Team Bravo",status:"Deployed"},
+{name:"Rescue Team Charlie",status:"Available"},
+{name:"Rescue Team Delta",status:"Available"},
+{name:"Rescue Team Echo",status:"Deployed"},
+{name:"Medical Team Foxtrot",status:"Available"}
+];
+
+function renderIncidents(){
+const filter=document.getElementById("severity").value;
+const filtered=incidents.filter(i=>filter==="All"||i.severity===filter);
+document.getElementById("incidents").innerHTML=filtered.map(i=>
+`<tr><td>${i.id}</td><td>${i.location}</td><td>${i.category}</td>
+<td class="badge ${i.severity}">${i.severity}</td><td>${i.time}</td>
+<td>${i.team}</td><td>${i.status}</td></tr>`).join("");
+}
+
+function renderCentres(){
+document.getElementById("centres").innerHTML=centres.map(c=>{
+const pct=Math.round(c.occupancy/c.capacity*100);
+return `<tr><td>${c.name}</td><td>${c.location}</td>
+<td>${c.occupancy}</td><td>${c.capacity}</td>
+<td>${pct}%</td><td>${c.supplies}</td></tr>`;
+}).join("");
+
+document.getElementById("centreAlerts").innerHTML=centres
+.filter(c=>c.occupancy/c.capacity>0.90)
+.map(c=>`<div class="alert">CRITICAL: ${c.name} occupancy is ${Math.round(c.occupancy/c.capacity*100)}%. Relocate evacuees or arrange additional capacity.</div>`)
+.join("")||'<div class="ok">No centre exceeds 90% occupancy.</div>';
+}
+
+function renderResources(){
+const active=incidents.filter(i=>i.status!=="Resolved");
+const rank={Critical:4,High:3,Medium:2,Low:1};
+const top=[...active].sort((a,b)=>rank[b.severity]-rank[a.severity])[0];
+document.getElementById("total").textContent=incidents.length;
+document.getElementById("open").textContent=active.length;
+document.getElementById("resolved").textContent=incidents.length-active.length;
+document.getElementById("teams").textContent=teams.filter(t=>t.status==="Available").length;
+
+document.getElementById("priority").textContent=
+top?`Highest-priority incident: ${top.id} — ${top.location} (${top.severity})`:"No open incidents.";
+document.getElementById("allocation").textContent=
+top?`Allocation status: ${top.team} assigned; assess need for additional vehicles and personnel.`:"No additional allocation required.";
+
+document.getElementById("supplies").innerHTML=centres
+.filter(c=>/low/i.test(c.supplies))
+.map(c=>`<li>${c.name}: ${c.supplies} — replenishment required.</li>`).join("")
+||"<li>No replenishment alerts.</li>";
+
+document.getElementById("teamList").innerHTML=teams.map(t=>
+`<li>${t.name}: ${t.status}</li>`).join("");
+}
+
+function renderAlerts(){
+const critical=incidents.filter(i=>i.severity==="Critical"&&i.status!=="Resolved").length;
+document.getElementById("alerts").innerHTML=critical?
+`<div class="alert">URGENT: ${critical} unresolved critical incident(s) require immediate review.</div>`:
+'<div class="ok">No unresolved critical incidents.</div>';
+}
+
+function simulateEvacuation(){
+const c=centres.find(c=>c.name==="Centre A");
+if(c.occupancy>0)c.occupancy=Math.max(0,c.occupancy-50);
+renderCentres();
+document.getElementById("simulation").textContent=
+`Simulation update: 50 evacuees transferred from Centre A where possible. New occupancy: ${c.occupancy}/${c.capacity}.`;
+}
+
+function simulateRelief(){
+const c=centres.find(c=>/low/i.test(c.supplies));
+if(c){
+c.supplies=c.supplies.replace(/low/ig,"replenished");
+renderCentres();renderResources();
+document.getElementById("simulation").textContent=
+`Simulation update: Relief supplies replenished at ${c.name}.`;
+}else{
+document.getElementById("simulation").textContent="All listed relief supplies are replenished.";
+}
+}
+
+renderIncidents();
+renderCentres();
+renderResources();
+renderAlerts();
+</script>
+
+</body>
+</html>
